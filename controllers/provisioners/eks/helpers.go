@@ -121,6 +121,8 @@ func (ctx *EksInstanceGroupContext) GetBasicUserData(clusterName, args string, k
 		nodeLabels       = ctx.GetComputedLabels()
 		nodeTaints       = configuration.GetTaints()
 		bootstrapOptions = ctx.GetComputedBootstrapOptions()
+		cluster          = state.GetCluster()
+ 		clusterIP        = ctx.AwsWorker.GetDNSClusterIP(cluster)
 	)
 	var maxPods int64
 
@@ -193,6 +195,34 @@ set -o xtrace
 /etc/eks/bootstrap.sh {{ .ClusterName }} {{ .Arguments }}
 set +o xtrace
 {{range $post := .PostBootstrap}}{{$post}}{{end}}`
+	case OsFamilyAmazonLinux2023:
+		UserDataTemplate = `MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="al2023"
+--al2023
+Content-Type: application/node.eks.aws
+---
+apiVersion: node.eks.aws/v1alpha1
+kind: NodeConfig
+spec:
+cluster:
+name: "{{ .ClusterName }}"
+apiServerEndpoint: "{{ .ApiEndpoint }}"
+certificateAuthority: "{{ .ClusterCA }}"
+cidr: 10.192.64.0/18
+kubelet:
+config:
+clusterdns:
+- "{{ .ClusterIP }}"
+flags:
+- --node-labels={{ $first := true }}{{ range $key, $value := .NodeLabels }}{{if not $first}},{{end}}{{ $key }}={{ $value }}{{ $first = false}}{{- end}}
+- --register-with-taints={{ $first := true }}{{- range .NodeTaints}}{{if not $first}},{{end}}{{ .Key }}={{ .Value }}:{{ .Effect }}{{ $first = false}}{{- end}}
+--al2023
+Content-Type: text/x-shellscript; charset="us-ascii"
+#!/bin/bash
+set -ex
+touch /tmp/config
+echo "testing kp al2023" > /tmp/config
+--al2023--`
 	}
 
 	data := EKSUserData{
@@ -207,6 +237,7 @@ set +o xtrace
 		PreBootstrap:     payload.PreBootstrap,
 		PostBootstrap:    payload.PostBootstrap,
 		MountOptions:     mounts,
+		ClusterIP:        clusterIP,
 	}
 	out := &bytes.Buffer{}
 	tmpl := template.New("userData").Funcs(template.FuncMap{

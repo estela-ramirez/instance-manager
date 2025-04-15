@@ -19,14 +19,14 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/ghodss/yaml"
 	"github.com/keikoproj/instance-manager/api/instancemgr/v1alpha1"
 	"github.com/keikoproj/instance-manager/controllers/common"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -76,6 +76,7 @@ func NewProvisionerConfiguration(config *corev1.ConfigMap, instanceGroup *v1alph
 		return c, errors.Wrap(err, "failed to unmarshal configuration")
 	}
 	instanceGroup.DeepCopyInto(c.InstanceGroup)
+	log.Infof("DEBUG: c.InstanceGroup = %v", c.InstanceGroup)
 	return c, nil
 }
 
@@ -117,6 +118,7 @@ func (c *ProvisionerConfiguration) Unmarshal(cm *corev1.ConfigMap) error {
 	}
 
 	if defaults, ok, _ := unstructured.NestedString(config, defaultsPath...); ok {
+		log.Infof("DEBUG:  defaults = %v", defaults)
 		defaultConfig := &map[string]interface{}{}
 		err := yaml.Unmarshal([]byte(defaults), defaultConfig)
 		if err != nil {
@@ -137,6 +139,9 @@ func (c *ProvisionerConfiguration) Unmarshal(cm *corev1.ConfigMap) error {
 		}
 		c.Conditionals = conditionalConfig
 	}
+
+	log.Infof("DEBUG: c.Defaults = %v", c.Defaults)
+	log.Infof("DEBUG: c.Conditionals = %v", c.Conditionals)
 	return nil
 }
 
@@ -168,8 +173,11 @@ func (c *ProvisionerConfiguration) setRestrictedFields(unstructuredInstanceGroup
 	if err != nil {
 		return err
 	}
+	log.Infof("DEBUG: setRestrictedFields")
+	log.Infof("DEBUG: applicableConditionals = %v", applicableConditionals)
 	for _, pathStr := range c.Boundaries.Restricted {
 		path := common.FieldPath(pathStr)
+		log.Infof("DEBUG: path = %v", path)
 		// if a default value exists for the path, set it on the instance group
 		var setFieldInAnyConditional = false
 		for _, conditional := range applicableConditionals {
@@ -185,12 +193,14 @@ func (c *ProvisionerConfiguration) setRestrictedFields(unstructuredInstanceGroup
 			continue
 		}
 		if field, ok, _ := unstructured.NestedFieldCopy(c.Defaults, path...); ok {
+			log.Infof("DEBUG 1: field = %v, path = %v", field, path)
 			// default value exists for restricted path
 			err := unstructured.SetNestedField(unstructuredInstanceGroup, field, path...)
 			if err != nil {
 				return errors.Wrap(err, "failed to set nested field")
 			}
 		} else {
+			log.Infof("DEBUG 2: field = %v, path = %v", field, path)
 			// if no default value exist, make sure to ignore CR value for restricted fields
 			err := unstructured.SetNestedField(unstructuredInstanceGroup, nil, path...)
 			if err != nil {

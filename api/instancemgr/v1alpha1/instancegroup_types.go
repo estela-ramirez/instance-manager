@@ -53,8 +53,9 @@ const (
 	ReconcileErr    ReconcileState = "Error"
 
 	// Userdata bootstrap stages
-	PreBootstrapStage  = "PreBootstrap"
-	PostBootstrapStage = "PostBootstrap"
+	PreBootstrapStage   = "PreBootstrap"
+	PostBootstrapStage  = "PostBootstrap"
+	NodeConfigYamlStage = "NodeConfigYaml"
 
 	LifecycleStateNormal      = "normal"
 	LifecycleStateSpot        = "spot"
@@ -242,6 +243,7 @@ type EKSConfiguration struct {
 	LicenseSpecifications       []string                  `json:"licenseSpecifications,omitempty"`
 	Placement                   *PlacementSpec            `json:"placement,omitempty"`
 	MetadataOptions             *MetadataOptions          `json:"metadataOptions,omitempty"`
+	AmazonLinuxOsFamily         string                    `json:"amazonLinuxOsFamily,omitempty"`
 }
 
 const (
@@ -839,6 +841,11 @@ func (c *EKSConfiguration) GetManagedPolicies() []string {
 }
 func (c *EKSConfiguration) GetUserData() []UserDataStage {
 	return c.UserData
+}
+
+func (c *EKSConfiguration) GetAmazonLinuxOsFamily() string {
+	return "amazonlinux2023"
+	//return c.AmazonLinuxOsFamily
 }
 func (c *EKSConfiguration) SetManagedPolicies(policies []string) {
 	c.ManagedPolicies = policies

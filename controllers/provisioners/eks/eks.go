@@ -41,9 +41,9 @@ const (
 	CustomNetworkingHostPodsAnnotation                = "instancemgr.keikoproj.io/custom-networking-host-pods"
 	CustomNetworkingPrefixAssignmentEnabledAnnotation = "instancemgr.keikoproj.io/custom-networking-prefix-assignment-enabled"
 
-	OsFamilyWindows      = "windows"
-	OsFamilyBottleRocket = "bottlerocket"
-	OsFamilyAmazonLinux2 = "amazonlinux2"
+	OsFamilyWindows         = "windows"
+	OsFamilyBottleRocket    = "bottlerocket"
+	OsFamilyAmazonLinux2    = "amazonlinux2"
 	OsFamilyAmazonLinux2023 = "amazonlinux2023"
 )
 
@@ -55,7 +55,6 @@ var (
 	InstanceMgrLifecycleLabel = "instancemgr.keikoproj.io/lifecycle"
 	InstanceMgrImageLabel     = "instancemgr.keikoproj.io/image"
 
-	AllowedOsFamilies      = []string{OsFamilyWindows, OsFamilyBottleRocket, OsFamilyAmazonLinux2}
 	AllowedOsFamilies      = []string{OsFamilyWindows, OsFamilyBottleRocket, OsFamilyAmazonLinux2, OsFamilyAmazonLinux2023}
 	DefaultManagedPolicies = []string{"AmazonEKSWorkerNodePolicy", "AmazonEC2ContainerRegistryReadOnly"}
 	CNIManagedPolicy       = "AmazonEKS_CNI_Policy"
@@ -150,7 +149,7 @@ func (ctx *EksInstanceGroupContext) GetOsFamily() string {
 		ctx.Log.Info("used unsupported annotation value '%v=%v', will default to 'amazonlinux2', allowed values: %+v", OsFamilyAnnotation, v, AllowedOsFamilies)
 	}
 
-	return OsFamilyAmazonLinux2
+	return OsFamilyAmazonLinux2 // eventually have to update to OsFamilyAmazonLinux2023
 }
 
 func (ctx *EksInstanceGroupContext) GetUpgradeStrategy() *v1alpha1.AwsUpgradeStrategy {

@@ -36,6 +36,7 @@ import (
 	kubeprovider "github.com/keikoproj/instance-manager/controllers/providers/kubernetes"
 	"github.com/keikoproj/instance-manager/controllers/provisioners"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -122,10 +123,10 @@ func (ctx *EksInstanceGroupContext) GetBasicUserData(clusterName, args string, k
 		nodeTaints       = configuration.GetTaints()
 		bootstrapOptions = ctx.GetComputedBootstrapOptions()
 		cluster          = state.GetCluster()
- 		clusterIP        = ctx.AwsWorker.GetDNSClusterIP(cluster)
+		clusterIP        = ctx.AwsWorker.GetDNSClusterIP(cluster)
 	)
 	var maxPods int64
-
+	log.Infof("DEBUG: In GetBasicUserData, osFamily = %v", osFamily)
 	if bootstrapOptions != nil {
 		maxPods = bootstrapOptions.MaxPods
 	}
@@ -356,7 +357,7 @@ func (ctx *EksInstanceGroupContext) GetAddedTags(asgName string) []*autoscaling.
 				numberOfIps := aws.Int64Value(instanceTypeNetworkInfo.Ipv4AddressesPerInterface) - 1
 				tags = append(tags, ctx.AwsWorker.NewTag("k8s.io/cluster-autoscaler/node-template/resources/vpc.amazonaws.com/PrivateIPv4Address", strconv.FormatInt(numberOfIps, 10), asgName))
 			}
-		default:
+		default: // TO DO: do I need to add additional tags to ASG for AL2023?
 			tags = append(tags, ctx.AwsWorker.NewTag("k8s.io/cluster-autoscaler/node-template/label/kubernetes.io/os", "linux", asgName))
 		}
 
@@ -593,7 +594,8 @@ func (ctx *EksInstanceGroupContext) GetBootstrapArgs() string {
 			sb.WriteString(fmt.Sprintf("-ContainerRuntime %v ", bootstrapOptions.ContainerRuntime))
 		}
 		sb.WriteString(fmt.Sprintf("-KubeletExtraArgs '%v'", ctx.GetKubeletExtraArgs()))
-	case OsFamilyAmazonLinux2:
+	case OsFamilyAmazonLinux2, OsFamilyAmazonLinux2023: // TO DO: check nothing changes for AL2023
+		log.Infof("DEBUG: In GetBootstrapArgs, osFamily = %v", osFamily)
 		if bootstrapOptions != nil && bootstrapOptions.MaxPods > 0 {
 			sb.WriteString("--use-max-pods false ")
 		}
@@ -1261,7 +1263,7 @@ func (ctx *EksInstanceGroupContext) GetEksLatestAmi() (string, error) {
 	if kubeprovider.HasAnnotation(annotations, OsFamilyAnnotation) {
 		OSFamily = annotations[OsFamilyAnnotation]
 	} else {
-		OSFamily = OsFamilyAmazonLinux2
+		OSFamily = OsFamilyAmazonLinux2 // eventually have to update to OsFamilyAmazonLinux2023
 	}
 
 	supportedArchitectures := awsprovider.GetInstanceTypeArchitectures(state.GetInstanceTypeInfo(), configuration.InstanceType)

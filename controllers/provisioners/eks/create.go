@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/keikoproj/instance-manager/controllers/provisioners/eks/scaling"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/keikoproj/instance-manager/api/instancemgr/v1alpha1"
 	kubeprovider "github.com/keikoproj/instance-manager/controllers/providers/kubernetes"
@@ -41,17 +40,12 @@ func (ctx *EksInstanceGroupContext) Create() error {
 		userDataPayload = ctx.GetUserDataStages()
 		clusterName     = configuration.GetClusterName()
 		mounts          = ctx.GetMountOpts()
-		userData        = ctx.GetBasicUserData(clusterName, args, kubeletArgs, userDataPayload, mounts, false)
+		userData        = ctx.GetBasicUserData(clusterName, args, kubeletArgs, userDataPayload, mounts)
 		sgs             = ctx.ResolveSecurityGroups()
 		spotPrice       = configuration.GetSpotPrice()
 		placement       = configuration.GetPlacement()
 		metadataOptions = configuration.GetMetadataOptions()
 	)
-
-	log.Infof("DEBUG: calling Create...")
-	log.Infof("DEBUG: GetMetadataOptions = %v", metadataOptions)
-
-	//log.Infof("DEBUG: userData = %v", userData)
 	ctx.SetState(v1alpha1.ReconcileModifying)
 
 	// no need to create a role if one is already provided

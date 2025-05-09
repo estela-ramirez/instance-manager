@@ -111,7 +111,7 @@ func (ctx *EksInstanceGroupContext) ResolveSecurityGroups() []string {
 	return resolved
 }
 
-func (ctx *EksInstanceGroupContext) GetBasicUserData(clusterName, args string, kubeletExtraArgs string, payload UserDataPayload, mounts []MountOpts, AmiIsGPU bool) string {
+func (ctx *EksInstanceGroupContext) GetBasicUserData(clusterName, args string, kubeletExtraArgs string, payload UserDataPayload, mounts []MountOpts) string {
 	var (
 		instanceGroup    = ctx.GetInstanceGroup()
 		configuration    = instanceGroup.GetEKSConfiguration()
@@ -124,13 +124,9 @@ func (ctx *EksInstanceGroupContext) GetBasicUserData(clusterName, args string, k
 		bootstrapOptions = ctx.GetComputedBootstrapOptions()
 		cluster          = state.GetCluster()
 		clusterIP        = ctx.AwsWorker.GetDNSClusterIP(cluster)
-		//alOSFamily       = configuration.GetAmazonLinuxOsFamily()
 	)
 	var maxPods int64
-	log.Infof("DEBUG: In GetBasicUserData, osFamily = %v", osFamily)
-	log.Infof("DEBUG: In GetBasicUserData, clusterIP = %v", clusterIP)
-	log.Infof("DEBUG: In GetBasicUserData, nodeTaints = %v", nodeTaints)
-	log.Infof("DEBUG: In GetBasicUserData, nodeLabels = %v", nodeLabels)
+
 	if bootstrapOptions != nil {
 		maxPods = bootstrapOptions.MaxPods
 	}
@@ -274,7 +270,6 @@ set +o xtrace
 		MountOptions:     mounts,
 		ClusterIP:        clusterIP,
 	}
-	log.Infof("DEBUG: UserDataTemplate  = %v", UserDataTemplate)
 	out := &bytes.Buffer{}
 	tmpl := template.New("userData").Funcs(template.FuncMap{
 		"ToLower": strings.ToLower,
@@ -299,8 +294,6 @@ func (ctx *EksInstanceGroupContext) GetUserDataStages() UserDataPayload {
 
 	payload := UserDataPayload{}
 
-	log.Infof("DEBUG: In GetUserDataStages,userData = %v ", userData)
-	log.Infof("DEBUG: AmazonLinuxOsFamily= %v", configuration.GetAmazonLinuxOsFamily())
 	for _, stage := range userData {
 		switch {
 		case strings.EqualFold(stage.Stage, v1alpha1.PreBootstrapStage):
@@ -381,7 +374,6 @@ func (ctx *EksInstanceGroupContext) GetAddedTags(asgName string) []*autoscaling.
 		instanceTypeInfo = state.GetInstanceTypeInfo()
 	)
 
-	log.Infof("DEBUG: In GetAddedTags osFamily = %v", osFamily)
 	tags = append(tags, ctx.AwsWorker.NewTag("Name", asgName, asgName))
 	tags = append(tags, ctx.AwsWorker.NewTag(provisioners.TagKubernetesCluster, clusterName, asgName))
 	tags = append(tags, ctx.AwsWorker.NewTag(provisioners.TagClusterName, clusterName, asgName))
@@ -402,7 +394,7 @@ func (ctx *EksInstanceGroupContext) GetAddedTags(asgName string) []*autoscaling.
 				numberOfIps := aws.Int64Value(instanceTypeNetworkInfo.Ipv4AddressesPerInterface) - 1
 				tags = append(tags, ctx.AwsWorker.NewTag("k8s.io/cluster-autoscaler/node-template/resources/vpc.amazonaws.com/PrivateIPv4Address", strconv.FormatInt(numberOfIps, 10), asgName))
 			}
-		default: // TO DO: do I need to add additional tags to ASG for AL2023?
+		default:
 			tags = append(tags, ctx.AwsWorker.NewTag("k8s.io/cluster-autoscaler/node-template/label/kubernetes.io/os", "linux", asgName))
 		}
 
@@ -628,7 +620,6 @@ func (ctx *EksInstanceGroupContext) GetBootstrapArgs() string {
 		cluster          = state.GetCluster()
 		clusterIP        = ctx.AwsWorker.GetDNSClusterIP(cluster)
 	)
-	log.Infof("DEBUG: In GetBootstrapArgs osFamily = %v", osFamily)
 	var sb strings.Builder
 	switch strings.ToLower(osFamily) {
 	case OsFamilyWindows:
@@ -641,7 +632,6 @@ func (ctx *EksInstanceGroupContext) GetBootstrapArgs() string {
 		}
 		sb.WriteString(fmt.Sprintf("-KubeletExtraArgs '%v'", ctx.GetKubeletExtraArgs()))
 	case OsFamilyAmazonLinux2, OsFamilyAmazonLinux2023:
-		log.Infof("DEBUG: In GetBootstrapArgs, osFamily = %v", osFamily)
 		if bootstrapOptions != nil && bootstrapOptions.MaxPods > 0 {
 			sb.WriteString("--use-max-pods false ")
 		}
@@ -1144,7 +1134,6 @@ func (ctx *EksInstanceGroupContext) RemoveAuthRole(arn string) error {
 
 	var instanceGroup = ctx.GetInstanceGroup()
 	var osFamily = ctx.GetOsFamily()
-	log.Infof("DEBUG: In RemoveAuthRole osFamily = %v", osFamily)
 	list, err := ctx.KubernetesClient.KubeDynamic.Resource(v1alpha1.GroupVersionResource).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -1306,17 +1295,15 @@ func (ctx *EksInstanceGroupContext) GetEksLatestAmi() (string, error) {
 	clusterVersion := state.GetClusterVersion()
 	//annotations := instanceGroup.GetAnnotations()
 
+	log.Infof("DEBUG: In GetEksLatestAmi, instanceGroup = %v", instanceGroup)
 	var OSFamily string
-	overrideOsFamily := configuration.GetAmazonLinuxOsFamily()
-	OSFamily = overrideOsFamily
-	log.Infof("DEBUG: In GetEksLatestAmi, OSFamily is = %v", OSFamily)
 	// if kubeprovider.HasAnnotation(annotations, OsFamilyAnnotation) {
 	// 	OSFamily = annotations[OsFamilyAnnotation]
 	// } else {
 	// 	OSFamily = OsFamilyAmazonLinux2
-
 	// }
-
+	overrideOsFamily := configuration.GetAmazonLinuxOsFamily()
+	OSFamily = overrideOsFamily
 	supportedArchitectures := awsprovider.GetInstanceTypeArchitectures(state.GetInstanceTypeInfo(), configuration.InstanceType)
 	arch := FilterSupportedArch(supportedArchitectures)
 	if arch == "" {
@@ -1333,7 +1320,6 @@ func (ctx *EksInstanceGroupContext) GetEksSsmAmi(id string) (string, error) {
 		osFamily      = ctx.GetOsFamily()
 		configuration = instanceGroup.GetEKSConfiguration()
 	)
-	log.Infof("DEBUG: In GetEksSsmAmi osFamily = %v", osFamily)
 	clusterVersion := state.GetClusterVersion()
 
 	supportedArchitectures := awsprovider.GetInstanceTypeArchitectures(state.GetInstanceTypeInfo(), configuration.InstanceType)

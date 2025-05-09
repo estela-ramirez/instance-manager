@@ -166,7 +166,7 @@ set -o xtrace
 /etc/eks/bootstrap.sh foo --use-max-pods false --container-runtime containerd --b64-cluster-ca dGVzdA== --apiserver-endpoint foo.amazonaws.com --dns-cluster-ip 172.20.0.10 --kubelet-extra-args '--node-labels=foo=bar,instancemgr.keikoproj.io/image=ami-123456789012,node.kubernetes.io/role=instance-group-1 --register-with-taints=foo=bar:NoSchedule --eviction-hard=memory.available<300Mi,nodefs.available<5% --system-reserved=memory=2.5Gi --v=2 --max-pods=4'
 set +o xtrace
 bar`
-	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts, false)
+	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts)
 	basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(userData)
 	basicUserDataString := string(basicUserDataDecoded)
 	if basicUserDataString != expectedDataLinux {
@@ -263,7 +263,7 @@ set -ex
 touch /tmp/config
 echo "testing kp al2023" > /tmp/config
 --al2023--`
-	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts, false)
+	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts)
 	basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(userData)
 	basicUserDataString := string(basicUserDataDecoded)
 	if basicUserDataString != expectedDataLinux {
@@ -340,7 +340,7 @@ func TestGetBasicUserDataWindows(t *testing.T) {
 		mounts          = ctx.GetMountOpts()
 	)
 
-	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts, false)
+	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts)
 	basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(userData)
 	basicUserDataString := string(basicUserDataDecoded)
 	if basicUserDataString != expectedDataWindows {
@@ -417,7 +417,7 @@ func TestGetBasicUserDataWindowsWithInjectionDisabled(t *testing.T) {
 		mounts          = ctx.GetMountOpts()
 	)
 
-	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts, false)
+	userData := ctx.GetBasicUserData("foo", args, kubeletArgs, userDataPayload, mounts)
 	basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(userData)
 	basicUserDataString := string(basicUserDataDecoded)
 	if basicUserDataString != expectedDataWindows {
@@ -455,7 +455,7 @@ func TestCustomNetworkingMaxPods(t *testing.T) {
 		},
 	})
 
-	userData := ctx.GetBasicUserData("foo", ctx.GetBootstrapArgs(), "", UserDataPayload{}, []MountOpts{}, false)
+	userData := ctx.GetBasicUserData("foo", ctx.GetBootstrapArgs(), "", UserDataPayload{}, []MountOpts{})
 	basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(userData)
 	basicUserDataString := string(basicUserDataDecoded)
 	if !strings.Contains(basicUserDataString, "--max-pods=20") {
@@ -518,7 +518,7 @@ func TestCustomNetworkingMaxPods(t *testing.T) {
 	for _, tc := range tests {
 		ctx.InstanceGroup.GetEKSConfiguration().BootstrapOptions = tc.bootstrapOptions
 		ctx.InstanceGroup.Annotations = tc.annotations
-		userData = ctx.GetBasicUserData("foo", ctx.GetBootstrapArgs(), "", UserDataPayload{}, []MountOpts{}, false)
+		userData = ctx.GetBasicUserData("foo", ctx.GetBootstrapArgs(), "", UserDataPayload{}, []MountOpts{})
 		basicUserDataDecoded, _ = base64.StdEncoding.DecodeString(userData)
 		basicUserDataString = string(basicUserDataDecoded)
 		if !strings.Contains(basicUserDataString, tc.expectedMaxPods) {
@@ -1089,7 +1089,7 @@ func TestMaxPodsSetCorrectly(t *testing.T) {
 		t.Logf("Test #%v - %+v", i, tc)
 		ctx := MockContext(tc.ig, k, w)
 		args := ctx.GetBootstrapArgs()
-		basicUserData := ctx.GetBasicUserData("", args, "", UserDataPayload{}, []MountOpts{}, false)
+		basicUserData := ctx.GetBasicUserData("", args, "", UserDataPayload{}, []MountOpts{})
 		basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(basicUserData)
 		basicUserDataString := string(basicUserDataDecoded)
 		if !strings.Contains(basicUserDataString, tc.expectedScriptSubstrings) {
@@ -1137,7 +1137,7 @@ func TestBootstrapDataForOSFamily(t *testing.T) {
 	for i, tc := range tests {
 		t.Logf("Test #%v - %+v", i, tc)
 		ctx := MockContext(tc.ig, k, w)
-		basicUserData := ctx.GetBasicUserData("", "", "", UserDataPayload{}, []MountOpts{}, false)
+		basicUserData := ctx.GetBasicUserData("", "", "", UserDataPayload{}, []MountOpts{})
 		basicUserDataDecoded, _ := base64.StdEncoding.DecodeString(basicUserData)
 		basicUserDataString := string(basicUserDataDecoded)
 		if !strings.Contains(basicUserDataString, tc.expectedScriptSubstrings) {

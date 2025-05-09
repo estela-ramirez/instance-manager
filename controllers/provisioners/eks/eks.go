@@ -146,8 +146,6 @@ func (ctx *EksInstanceGroupContext) GetOsFamily() string {
 		configuration = instanceGroup.GetEKSConfiguration()
 	)
 
-	// if AL2 return AL2023,
-
 	// if v, exists := annotations[OsFamilyAnnotation]; exists {
 	// 	if common.ContainsEqualFold(AllowedOsFamilies, v) {
 	// 		log.Infof("DEBUG: returning annotation %v", annotations[OsFamilyAnnotation])
@@ -155,6 +153,10 @@ func (ctx *EksInstanceGroupContext) GetOsFamily() string {
 	// 	}
 	// 	ctx.Log.Info("used unsupported annotation value '%v=%v', will default to 'amazonlinux2', allowed values: %+v", OsFamilyAnnotation, v, AllowedOsFamilies)
 	// }
+	// return OsFamilyAmazonLinux2
+
+	// TO DO: get version from new arktika alOSVersion
+	log.Infof("DEBUG: instanceGroup = %v", instanceGroup)
 	log.Infof("DEBUG: returning arktika OsFamilyAmazonLinux Version: %v", configuration.GetAmazonLinuxOsFamily())
 	return configuration.GetAmazonLinuxOsFamily()
 }

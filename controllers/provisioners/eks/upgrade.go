@@ -26,7 +26,6 @@ import (
 	kubeprovider "github.com/keikoproj/instance-manager/controllers/providers/kubernetes"
 	"github.com/keikoproj/instance-manager/controllers/provisioners/eks/scaling"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -95,7 +94,6 @@ func (ctx *EksInstanceGroupContext) BootstrapNodes() error {
 		role          = state.GetRole()
 		roleARN       = aws.StringValue(role.Arn)
 	)
-	log.Infof("DEBUG: In BootstrapNodes osFamily = %v", osFamily)
 	ctx.Log.Info("bootstrapping arn to aws-auth", "instancegroup", instanceGroup.NamespacedName(), "arn", roleARN)
 
 	// lock to guarantee Upsert and Remove cannot conflict when roles are shared between instancegroups

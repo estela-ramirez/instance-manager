@@ -20,11 +20,12 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/keikoproj/instance-manager/api/instancemgr/v1alpha1"
+	"github.com/keikoproj/instance-manager/controllers/common"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/keikoproj/instance-manager/api/instancemgr/v1alpha1"
-	"github.com/keikoproj/instance-manager/controllers/common"
 	awsprovider "github.com/keikoproj/instance-manager/controllers/providers/aws"
 	"github.com/pkg/errors"
 )
@@ -233,7 +234,6 @@ func (lc *LaunchConfiguration) Drifted(input *CreateConfigurationInput) bool {
 
 	metadataOptions := lc.metadataOptions(input.MetadataOptions)
 
-	log.Info("DEBUG:", "metadataOptions := lc.metadataOptions(input.MetadataOptions) =", metadataOptions)
 	if !reflect.DeepEqual(metadataOptions, existingConfig.MetadataOptions) {
 		log.Info("detected drift", "reason", "metadata options have changed", "instancegroup", lc.OwnerName,
 			"previousValue", existingConfig.MetadataOptions,

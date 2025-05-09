@@ -80,6 +80,7 @@ func New(p provisioners.ProvisionerInput) *EksInstanceGroupContext {
 		ConfigRetention:            p.ConfigRetention,
 		Metrics:                    p.Metrics,
 		DisableWinClusterInjection: p.DisableWinClusterInjection,
+		AmazonLinuxOsFamily:        p.AmazonLinuxOsFamily,
 	}
 
 	ctx.SetState(v1alpha1.ReconcileInit)
@@ -101,6 +102,7 @@ type EksInstanceGroupContext struct {
 	ResourcePrefix             string
 	Metrics                    *common.MetricsCollector
 	DisableWinClusterInjection bool
+	AmazonLinuxOsFamily        string
 }
 
 type UserDataPayload struct {
@@ -142,23 +144,22 @@ func (ctx *EksInstanceGroupContext) GetInstanceGroup() *v1alpha1.InstanceGroup {
 func (ctx *EksInstanceGroupContext) GetOsFamily() string {
 	var (
 		instanceGroup = ctx.GetInstanceGroup()
-		//annotations   = instanceGroup.GetAnnotations()
-		configuration = instanceGroup.GetEKSConfiguration()
+		annotations   = instanceGroup.GetAnnotations()
 	)
-
-	// if v, exists := annotations[OsFamilyAnnotation]; exists {
-	// 	if common.ContainsEqualFold(AllowedOsFamilies, v) {
-	// 		log.Infof("DEBUG: returning annotation %v", annotations[OsFamilyAnnotation])
-	// 		return annotations[OsFamilyAnnotation]
-	// 	}
-	// 	ctx.Log.Info("used unsupported annotation value '%v=%v', will default to 'amazonlinux2', allowed values: %+v", OsFamilyAnnotation, v, AllowedOsFamilies)
-	// }
-	// return OsFamilyAmazonLinux2
-
-	// TO DO: get version from new arktika alOSVersion
 	log.Infof("DEBUG: instanceGroup = %v", instanceGroup)
-	log.Infof("DEBUG: returning arktika OsFamilyAmazonLinux Version: %v", configuration.GetAmazonLinuxOsFamily())
-	return configuration.GetAmazonLinuxOsFamily()
+
+	if v, exists := annotations[OsFamilyAnnotation]; exists {
+		if common.ContainsEqualFold(AllowedOsFamilies, v) {
+			log.Infof("DEBUG: returning existing annotation %v", annotations[OsFamilyAnnotation])
+			return annotations[OsFamilyAnnotation]
+		}
+		ctx.Log.Info("used unsupported annotation value '%v=%v', will default to 'amazonlinux2', allowed values: %+v", OsFamilyAnnotation, v, AllowedOsFamilies)
+	} else if common.ContainsEqualFold(AllowedOsFamilies, ctx.AmazonLinuxOsFamily) {
+		log.Infof("DEBUG: returning arktika OsFamilyAmazonLinux Version: %v", ctx.AmazonLinuxOsFamily)
+		return ctx.AmazonLinuxOsFamily
+	}
+	log.Infof("DEBUG: returning default")
+	return OsFamilyAmazonLinux2
 }
 
 func (ctx *EksInstanceGroupContext) GetUpgradeStrategy() *v1alpha1.AwsUpgradeStrategy {

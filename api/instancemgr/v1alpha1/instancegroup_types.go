@@ -243,7 +243,6 @@ type EKSConfiguration struct {
 	LicenseSpecifications       []string                  `json:"licenseSpecifications,omitempty"`
 	Placement                   *PlacementSpec            `json:"placement,omitempty"`
 	MetadataOptions             *MetadataOptions          `json:"metadataOptions,omitempty"`
-	AmazonLinuxOsFamily         string                    `json:"amazonLinuxOsFamily,omitempty"`
 }
 
 const (
@@ -843,10 +842,6 @@ func (c *EKSConfiguration) GetUserData() []UserDataStage {
 	return c.UserData
 }
 
-func (c *EKSConfiguration) GetAmazonLinuxOsFamily() string {
-	return "amazonlinux2023"
-	//return c.AmazonLinuxOsFamily
-}
 func (c *EKSConfiguration) SetManagedPolicies(policies []string) {
 	c.ManagedPolicies = policies
 }

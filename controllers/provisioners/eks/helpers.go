@@ -1293,17 +1293,19 @@ func (ctx *EksInstanceGroupContext) GetEksLatestAmi() (string, error) {
 		configuration = instanceGroup.GetEKSConfiguration()
 	)
 	clusterVersion := state.GetClusterVersion()
-	//annotations := instanceGroup.GetAnnotations()
+	annotations := instanceGroup.GetAnnotations()
 
 	log.Infof("DEBUG: In GetEksLatestAmi, instanceGroup = %v", instanceGroup)
 	var OSFamily string
-	// if kubeprovider.HasAnnotation(annotations, OsFamilyAnnotation) {
-	// 	OSFamily = annotations[OsFamilyAnnotation]
-	// } else {
-	// 	OSFamily = OsFamilyAmazonLinux2
-	// }
-	overrideOsFamily := configuration.GetAmazonLinuxOsFamily()
-	OSFamily = overrideOsFamily
+	if kubeprovider.HasAnnotation(annotations, OsFamilyAnnotation) {
+		OSFamily = annotations[OsFamilyAnnotation]
+	} else if ctx.AmazonLinuxOsFamily != "" {
+		log.Infof("DEBUG: In GetEksLatestAmi returning arktik OsFamilyAmazonLinux Version: %v", ctx.AmazonLinuxOsFamily)
+		OSFamily = ctx.AmazonLinuxOsFamily
+	} else {
+		OSFamily = OsFamilyAmazonLinux2
+	}
+
 	supportedArchitectures := awsprovider.GetInstanceTypeArchitectures(state.GetInstanceTypeInfo(), configuration.InstanceType)
 	arch := FilterSupportedArch(supportedArchitectures)
 	if arch == "" {
